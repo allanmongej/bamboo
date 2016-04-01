@@ -1,6 +1,8 @@
 defmodule Bamboo.Test do
   @timeout 100
 
+  import ExUnit.Assertions
+
   @moduledoc """
   Helpers for testing email delivery
 
@@ -164,13 +166,69 @@ defmodule Bamboo.Test do
   def assert_delivered_email(%Bamboo.Email{} = email) do
     import ExUnit.Assertions
     email = Bamboo.Mailer.normalize_addresses(email)
-    assert_receive {:delivered_email, ^email}, @timeout
+    do_assert_delivered_email(email)
   end
+
   def assert_delivered_email(email_options) when is_list(email_options) do
     import ExUnit.Assertions
     email = Bamboo.Email.new_email(email_options)
       |> Bamboo.Mailer.normalize_addresses
     assert_receive {:delivered_email, ^email}, @timeout
+  end
+
+  defp do_assert_delivered_email(email) do
+    receive do
+      {:delivered_email, ^email} -> true
+    after
+      @timeout -> flunk_assertion(email)
+    end
+  end
+
+  defp flunk_assertion(email) do
+    if Enum.empty?(delivered_emails) do
+      flunk """
+      There were 0 emails delivered to this process.
+
+      If you expected an email to be sent, try these ideas:
+
+        1) Make sure you call deliver_now/1 or deliver_later/1 to deliver the email
+        2) Make sure you are using the Bamboo.TestAdapter
+        3) Use the process name feature of Bamboo.Test. This will allow Bamboo.Test
+           to work across processes: use Bamboo.Test, process_name: :my_test_name
+        4) If you are writing an acceptance test through a headless browser, see
+           if writing a controller test would be possible instead.
+      """
+    else
+      flunk """
+      There were no matching emails.
+
+      No emails matched:
+
+        #{inspect email}
+
+      Delivered emails:
+
+      #{delivered_emails_as_list}
+      """
+    end
+  end
+
+  defp delivered_emails do
+    {:messages, messages} = Process.info(self, :messages)
+
+    for {:delivered_email, _} = email_message <- messages do
+      email_message
+    end
+  end
+
+  defp delivered_emails_as_list do
+    delivered_emails |> add_asterisk |> Enum.join("\n")
+  end
+
+  defp add_asterisk(emails) do
+    for email <- emails do
+      "  * #{inspect email}"
+    end
   end
 
   @doc """

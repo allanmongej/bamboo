@@ -44,6 +44,47 @@ defmodule Bamboo.TestAdapterTest do
 
     assert_delivered_email sent_email
     refute_delivered_email unsent_email
+
+    sent_email |> TestMailer.deliver_now
+    assert_raise ExUnit.AssertionError, fn ->
+      assert_delivered_email %{sent_email | to: "oops"}
+    end
+  end
+
+  test "assertion helpers raise helpful message" do
+    sent_email = new_email(from: "foo@bar.com", to: ["foo@bar.com"])
+
+    try do
+      assert_delivered_email %{sent_email | to: "oops"}
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert error.message =~ "0 emails delivered"
+    else
+      _ -> flunk "assert_delivered_email should failed"
+    end
+
+    sent_email |> TestMailer.deliver_now
+    try do
+      assert_delivered_email %{sent_email | to: "oops"}
+    rescue
+      error in [ExUnit.AssertionError] ->
+        message = error.message
+        assert message =~ "no matching emails"
+        # assert message =~ sent_email.subject
+    else
+      _ -> flunk "assert_delivered_email should failed"
+    end
+
+    send self, :not_an_email
+
+    try do
+      assert_delivered_email %{sent_email | to: "oops"}
+    rescue
+      error in [ExUnit.AssertionError] ->
+        refute error.message =~ ":not_an_email"
+    else
+      _ -> flunk "assert_delivered_email should failed"
+    end
   end
 
   test "helpers for testing against parts of an email" do
@@ -58,6 +99,12 @@ defmodule Bamboo.TestAdapterTest do
 
   test "assert_no_emails_sent" do
     assert_no_emails_sent
+
+    sent_email = new_email(from: "foo@bar.com", to: "whoever")
+    sent_email |> TestMailer.deliver_now
+    assert_raise ExUnit.AssertionError, fn ->
+      assert_no_emails_sent
+    end
   end
 
   test "assertion helpers format email addresses" do
