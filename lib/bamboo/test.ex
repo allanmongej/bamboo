@@ -168,22 +168,15 @@ defmodule Bamboo.Test do
     do_assert_delivered_email(email)
   end
 
-  def assert_delivered_email(email_options) when is_list(email_options) do
-    email = Bamboo.Email.new_email(email_options)
-      |> Bamboo.Mailer.normalize_addresses
-
-    do_assert_delivered_email email
-  end
-
   defp do_assert_delivered_email(email) do
     receive do
       {:delivered_email, ^email} -> true
     after
-      @timeout -> flunk_assertion(email)
+      @timeout -> flunk_with_email_list(email)
     end
   end
 
-  defp flunk_assertion(email) do
+  defp flunk_with_email_list(email) do
     if Enum.empty?(delivered_emails) do
       flunk """
       There were 0 emails delivered to this process.
@@ -195,7 +188,7 @@ defmodule Bamboo.Test do
         3) Use the process name feature of Bamboo.Test. This will allow Bamboo.Test
            to work across processes: use Bamboo.Test, process_name: :my_test_name
         4) If you are writing an acceptance test through a headless browser, see
-           if writing a controller test would be possible instead. Otherwise use
+           if writing a controller test would be possible instead. Otherwise try
            option 3.
       """
     else
@@ -239,12 +232,17 @@ defmodule Bamboo.Test do
   may have a race condition where this assertion is called before the email was
   received by the test process, resulting in an incorrect test.
   """
-  def assert_no_emails_sent do
+  def assert_no_emails_delivered do
     receive do
       {:delivered_email, email} -> flunk_with_unexpected_email(email)
     after
       0 -> true
     end
+  end
+
+  @doc false
+  def assert_no_emails_sent do
+    raise "assert_no_emails_sent has been renamed to assert_no_emails_delivered"
   end
 
   defp flunk_with_unexpected_email(email) do
@@ -285,11 +283,5 @@ defmodule Bamboo.Test do
 
       #{inspect email}
     """
-  end
-
-  def refute_delivered_email(email_options) when is_list(email_options) do
-    email = Bamboo.Email.new_email(email_options)
-      |> Bamboo.Mailer.normalize_addresses
-    refute_received {:delivered_email, ^email}
   end
 end
