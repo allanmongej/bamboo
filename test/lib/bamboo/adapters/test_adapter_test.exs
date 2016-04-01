@@ -114,6 +114,22 @@ defmodule Bamboo.TestAdapterTest do
     end
   end
 
+  test "refute_delivered_email shows the delivered email" do
+    sent_email = new_email(from: "foo@bar.com", to: ["foo@bar.com"])
+
+    TestMailer.deliver_now(sent_email)
+
+    try do
+      refute_delivered_email sent_email
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert error.message =~ "Unexpectedly delivered a matching email"
+        assert error.message =~ sent_email.from
+    else
+      _ -> flunk "refute_delivered_email should failed"
+    end
+  end
+
   test "helpers for testing against parts of an email" do
     recipient = {nil, "foo@bar.com"}
     sent_email = new_email(from: "foo@bar.com", to: [recipient])

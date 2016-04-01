@@ -269,7 +269,22 @@ defmodule Bamboo.Test do
   """
   def refute_delivered_email(%Bamboo.Email{} = email) do
     email = Bamboo.Mailer.normalize_addresses(email)
-    refute_received {:delivered_email, ^email}
+
+    receive do
+      {:delivered_email, ^email} -> flunk_with_unexpected_matching_email(email)
+    after
+      0 -> true
+    end
+  end
+
+  defp flunk_with_unexpected_matching_email(email) do
+    flunk """
+    Unexpectedly delivered a matching email.
+
+    Matched email that was delivered:
+
+      #{inspect email}
+    """
   end
 
   def refute_delivered_email(email_options) when is_list(email_options) do
