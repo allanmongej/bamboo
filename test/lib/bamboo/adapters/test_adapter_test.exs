@@ -98,6 +98,22 @@ defmodule Bamboo.TestAdapterTest do
     end
   end
 
+  test "assert_no_emails_sent shows the delivered email" do
+    sent_email = new_email(from: "foo@bar.com", to: ["foo@bar.com"])
+
+    TestMailer.deliver_now(sent_email)
+
+    try do
+      assert_no_emails_sent
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert error.message =~ "Unexpectedly delivered an email"
+        assert error.message =~ sent_email.from
+    else
+      _ -> flunk "assert_no_emails_sent should failed"
+    end
+  end
+
   test "helpers for testing against parts of an email" do
     recipient = {nil, "foo@bar.com"}
     sent_email = new_email(from: "foo@bar.com", to: [recipient])
@@ -113,6 +129,7 @@ defmodule Bamboo.TestAdapterTest do
 
     sent_email = new_email(from: "foo@bar.com", to: "whoever")
     sent_email |> TestMailer.deliver_now
+
     assert_raise ExUnit.AssertionError, fn ->
       assert_no_emails_sent
     end

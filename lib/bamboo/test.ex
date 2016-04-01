@@ -164,13 +164,11 @@ defmodule Bamboo.Test do
       assert_delivered_email(unsent_email) # Will fail
   """
   def assert_delivered_email(%Bamboo.Email{} = email) do
-    import ExUnit.Assertions
     email = Bamboo.Mailer.normalize_addresses(email)
     do_assert_delivered_email(email)
   end
 
   def assert_delivered_email(email_options) when is_list(email_options) do
-    import ExUnit.Assertions
     email = Bamboo.Email.new_email(email_options)
       |> Bamboo.Mailer.normalize_addresses
 
@@ -242,8 +240,21 @@ defmodule Bamboo.Test do
   received by the test process, resulting in an incorrect test.
   """
   def assert_no_emails_sent do
-    import ExUnit.Assertions
-    refute_received {:delivered_email, _}
+    receive do
+      {:delivered_email, email} -> flunk_with_unexpected_email(email)
+    after
+      0 -> true
+    end
+  end
+
+  defp flunk_with_unexpected_email(email) do
+    flunk """
+    Unexpectedly delivered an email when expected none to be delivered.
+
+    Delivered email:
+
+      #{inspect email}
+    """
   end
 
   @doc """
@@ -257,12 +268,11 @@ defmodule Bamboo.Test do
   received by the test process, resulting in an incorrect test.
   """
   def refute_delivered_email(%Bamboo.Email{} = email) do
-    import ExUnit.Assertions
     email = Bamboo.Mailer.normalize_addresses(email)
     refute_received {:delivered_email, ^email}
   end
+
   def refute_delivered_email(email_options) when is_list(email_options) do
-    import ExUnit.Assertions
     email = Bamboo.Email.new_email(email_options)
       |> Bamboo.Mailer.normalize_addresses
     refute_received {:delivered_email, ^email}
