@@ -173,7 +173,8 @@ defmodule Bamboo.Test do
     import ExUnit.Assertions
     email = Bamboo.Email.new_email(email_options)
       |> Bamboo.Mailer.normalize_addresses
-    assert_receive {:delivered_email, ^email}, @timeout
+
+    do_assert_delivered_email email
   end
 
   defp do_assert_delivered_email(email) do
@@ -196,7 +197,8 @@ defmodule Bamboo.Test do
         3) Use the process name feature of Bamboo.Test. This will allow Bamboo.Test
            to work across processes: use Bamboo.Test, process_name: :my_test_name
         4) If you are writing an acceptance test through a headless browser, see
-           if writing a controller test would be possible instead.
+           if writing a controller test would be possible instead. Otherwise use
+           option 3.
       """
     else
       flunk """
