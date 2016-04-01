@@ -73,6 +73,7 @@ defmodule Bamboo.TestAdapterTest do
       assert_delivered_email %{sent_email | to: "oops"}
     rescue
       error in [ExUnit.AssertionError] ->
+        assert error.message =~ "no matching emails"
         assert error.message =~ sent_email.from
     else
       _ -> flunk "assert_delivered_email should failed"
@@ -82,12 +83,15 @@ defmodule Bamboo.TestAdapterTest do
   test "assert_delivered_email filters message that are not emails" do
     sent_email = new_email(from: "foo@bar.com", to: ["foo@bar.com"])
 
+    TestMailer.deliver_now(sent_email)
+
     send self, :not_an_email
 
     try do
       assert_delivered_email %{sent_email | to: "oops"}
     rescue
       error in [ExUnit.AssertionError] ->
+        assert error.message =~ "no matching emails"
         refute error.message =~ ":not_an_email"
     else
       _ -> flunk "assert_delivered_email should failed"
