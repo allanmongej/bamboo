@@ -1,5 +1,5 @@
 defmodule Bamboo.Test do
-  @timeout 100
+  @timeout 10
 
   import ExUnit.Assertions
 
